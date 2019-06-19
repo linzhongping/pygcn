@@ -71,13 +71,13 @@ class BI_Intereaction(Module):
         self.weight.data.uniform_(-stdv, stdv)
 
     def bi_pooling(self, input, embeddings):
-        output = torch.zeros(input.shape[0], 8)
+        output = torch.zeros(input.shape[0], self.k_embedding)
         rows, cols = input.shape[0], input.shape[1]
 
         # print(rows,cols)
         for _ in range(rows):
-            left  = torch.zeros(8)
-            right = torch.zeros(8)
+            left  = torch.zeros(self.k_embedding)
+            right = torch.zeros(self.k_embedding)
             nonzero_index = torch.nonzero(input[_])
             # print(nonzero_index.squeeze(1))
             for i in nonzero_index.squeeze(1):
