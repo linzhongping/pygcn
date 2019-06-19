@@ -1,11 +1,12 @@
 import math
 
+from torch.nn import Embedding
 import torch
-
 from torch.nn.parameter import Parameter
 from torch.nn.modules.module import Module
-
-
+from torch.nn import init
+from torch.autograd import Variable
+torch.random.manual_seed(2070)
 class GraphConvolution(Module):
     """
     Simple GCN layer, similar to https://arxiv.org/abs/1609.02907
@@ -40,3 +41,61 @@ class GraphConvolution(Module):
         return self.__class__.__name__ + ' (' \
                + str(self.in_features) + ' -> ' \
                + str(self.out_features) + ')'
+
+
+class BI_Intereaction(Module):
+
+    def __init__(self, in_features, k_embedding):
+        '''
+        :param in_features: 输入特征维数
+        :param k:  单一特征embedding
+        :param bias:
+        '''
+
+        super(BI_Intereaction, self).__init__()
+        self.in_features = in_features
+        self.k_embedding = k_embedding
+
+        self.embedding = Embedding(in_features, k_embedding)
+
+        # self.weight = Parameter(torch.FloatTensor(in_features,k_embedding))
+        # self.reset_parameters()
+        self.init_embedding()
+
+    def init_embedding(self):
+        init.xavier_uniform_(self.embedding.weight)
+        # print('embedding_init',self.embedding.weight)
+
+    def reset_parameters(self):
+        stdv = 1. / math.sqrt(self.weight.size(1))
+        self.weight.data.uniform_(-stdv, stdv)
+
+    def bi_pooling(self, input, embeddings):
+        output = torch.zeros(input.shape[0], 8)
+        rows, cols = input.shape[0], input.shape[1]
+
+        # print(rows,cols)
+        for _ in range(rows):
+            left  = torch.zeros(8)
+            right = torch.zeros(8)
+            nonzero_index = torch.nonzero(input[_])
+            # print(nonzero_index.squeeze(1))
+            for i in nonzero_index.squeeze(1):
+
+                left  += torch.mul(embeddings.weight[i] , input[_][i])
+                right += torch.mul(embeddings.weight[i] , input[_][i]) ** 2
+
+            vec = 0.5 * (left ** 2 - right)
+
+            output[_] = vec
+
+
+
+        # print(output,output.shape)
+        return output
+
+
+    def forward(self, input):
+        return self.bi_pooling(input,self.embedding)
+
+
